@@ -1,0 +1,32 @@
+{
+  "type": "object",
+  "properties": {
+    "login_style": {
+      "type": "string",
+      "title": "登录页样式",
+      "enum": [
+        "split",
+        "aurora",
+        "ring",
+        "glass"
+      ],
+      "default": "split",
+      "description": "选择登录页外观；未设置时使用分栏卡片",
+      "x-public": true,
+      "x-enum-previews": {
+        "split": "frontend/previews/split.jpg",
+        "aurora": "frontend/previews/aurora.jpg",
+        "ring": "frontend/previews/ring.jpg",
+        "glass": "frontend/previews/glass.jpg"
+      }
+    },
+    "slogan": {
+      "type": "string",
+      "title": "自定义标语",
+      "maxLength": 40,
+      "default": "",
+      "description": "登录页标题文案，最长 40 字；为空时用样式默认标题，回车换行",
+      "x-public": true
+    }
+  }
+}

@@ -1,0 +1,525 @@
+/*
+ * 登录页插件共享样式：设计 token + 表单区控件（四种样式共用）。
+ *
+ * 为什么不放 scoped：四种外壳（layouts/*.vue）与四个表单组件（PasswordForm / OtpForm /
+ * QrPanel / ChallengeForm）共用同一套 token 与输入框 / 按钮覆盖写法，scoped 只能在各组件里
+ * 重复一份。这里统一挂在 .klp-root 命名空间下，类名一律 klp- 前缀，
+ * 不会污染宿主页面。构建时随 bundle 内联注入（见 vite.config.ts cssInjectInline）。
+ *
+ * 视觉数值权威：视觉规范（renderVals 各样式数值）。
+ */
+
+/* ── 设计 token：默认（split / klp 共用），各样式在下方按 .klp-style-<x> 覆盖 ──────────
+ * 2026-07-10 透传契约（teyvat-ui-spec §9）：品牌色 / 主文字色 / 容器白消费宿主 :root 主题变量，
+ * 写法 rgb(var(--x, R G B))（宿主颜色变量是空格分隔 RGB 三元组）；fallback 取视觉规范字面值。
+ */
+.klp-root {
+  --klp-text-primary: rgb(var(--base-text-color, 31 31 31));
+  --klp-text-secondary: #666666;
+  --klp-text-placeholder: #999999;
+  /* 图标前景色（teyvat-ui-spec §5）：SVG 图标统一纯黑。 */
+  --klp-icon-color: #000000;
+  --klp-brand-primary: rgb(var(--primary-color, 8 119 244));
+  --klp-accent: rgb(var(--primary-color, 8 119 244));
+  --klp-input-bg: #fafafa;
+  --klp-input-border: #e4e7ed;
+  --klp-input-inset: none;
+  --klp-focus-ring: 0 0 0 3px rgba(8, 119, 244, 0.12);
+  --klp-error: #d03050;
+  --klp-error-bg: rgba(208, 48, 80, 0.08);
+  --klp-warning: #f0a020;
+  /* 登录按钮：渐变加长为两倍宽并往返平移（静止帧与视觉规范一致：青→蓝）。#0AD8EF 青色端点是
+     aurora 专属品牌装饰，按「算法色阶豁免」保留字面值。 */
+  --klp-btn-bg: linear-gradient(94.6deg, #0ad8ef 0%, #52a0f7 22%, #0877f4 50%, #52a0f7 78%, #0ad8ef 100%);
+  --klp-btn-anim: klp-btn-flow 5s ease-in-out infinite alternate;
+  --klp-btn-shadow: drop-shadow(0 4px 2px rgba(8, 119, 244, 0.1));
+  /* 顶部 Tab：aurora 用分段、其余用下划线。 */
+  --klp-tab-seg-bg: #f2f3f5;
+  --klp-tab-seg-active-bg: #ffffff;
+  --klp-tab-seg-active-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  /* 底部「其他方式」32px 圆形小图标按钮。 */
+  --klp-icon-btn-bg: #ffffff;
+  --klp-icon-btn-border: #e4e7ed;
+  /* 图形验证码图片宽：aurora 104，其余 120（视觉规范 capImgW）。 */
+  --klp-captcha-w: 120px;
+}
+
+.klp-root.klp-style-aurora {
+  --klp-captcha-w: 104px;
+}
+
+/* 新三样式错误色统一 #e84f4f（视觉规范 err：cur 之外）。 */
+.klp-root.klp-style-split,
+.klp-root.klp-style-ring,
+.klp-root.klp-style-glass {
+  --klp-error: #e84f4f;
+  --klp-error-bg: rgba(232, 79, 79, 0.06);
+}
+
+/* ring / glass：白底输入框；ring 描边略深，glass 带内阴影。 */
+.klp-root.klp-style-ring {
+  --klp-input-bg: #ffffff;
+  --klp-input-border: #dcdfe6;
+}
+
+.klp-root.klp-style-glass {
+  --klp-input-bg: #ffffff;
+  --klp-input-inset: inset 1px 1px 4px rgba(8, 119, 244, 0.12);
+  /* glass 按钮为纯品牌色（由 #59b2ff 加深为 #0877f4，白字对比度达标），不做渐变流动。 */
+  --klp-btn-bg: #0877f4;
+  --klp-btn-anim: none;
+  --klp-btn-shadow: drop-shadow(0 4px 2px rgba(8, 119, 244, 0.18));
+}
+
+/* ── 暗色（teyvat-ui-spec §8 推导）：主文字色随宿主 --base-text-color 自动跟随，不本地覆盖 ── */
+html.dark .klp-root {
+  --klp-text-secondary: rgba(235, 235, 245, 0.6);
+  --klp-text-placeholder: rgba(235, 235, 245, 0.45);
+  --klp-icon-color: rgb(var(--base-text-color, 224 224 224));
+  /* 暗色下品牌蓝提亮一档（#0877F4 在深底上偏沉）：§8 允许的装饰性例外。 */
+  --klp-brand-primary: #4dabf7;
+  --klp-accent: #4dabf7;
+  --klp-input-bg: rgba(255, 255, 255, 0.06);
+  --klp-input-border: rgba(255, 255, 255, 0.16);
+  --klp-input-inset: none;
+  --klp-focus-ring: 0 0 0 3px rgba(77, 171, 247, 0.18);
+  --klp-error: #ff6b81;
+  --klp-error-bg: rgba(255, 107, 129, 0.12);
+  --klp-warning: #ffc857;
+  --klp-btn-shadow: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4));
+  --klp-tab-seg-bg: rgba(255, 255, 255, 0.06);
+  --klp-tab-seg-active-bg: rgba(255, 255, 255, 0.14);
+  --klp-tab-seg-active-shadow: none;
+  --klp-icon-btn-bg: rgba(255, 255, 255, 0.06);
+  --klp-icon-btn-border: rgba(255, 255, 255, 0.16);
+}
+
+html.dark .klp-root.klp-style-glass {
+  --klp-btn-bg: #1c7ef0;
+}
+
+@keyframes klp-btn-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+/* ── 表单区几何（高度对齐规则）────────────────────────────────────────────────────────────
+ * Tab 区 56 / 主体 192 / 底部一行 52（视觉规范 Tab 56 + 主体 192 + 底部 52 = 300）。
+ * 主体 = 输入框 40 + 间距 36 + 输入框 40 + 间距 40 + 按钮 36。
+ * 必填红字、宿主业务错误、短信已发送提示一律绝对定位在既有间距里，不占文档流 → 不改变高度；
+ * 唯一例外是图形验证码行（40 + 36 = 多 76）。
+ */
+.klp-form-area {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  color: var(--klp-text-primary);
+}
+
+.klp-form-body {
+  min-height: 192px;
+  display: flex;
+  flex-direction: column;
+}
+
+.klp-form {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 字段列：字段间距 36（定稿 ref-1513 gap-[36px]）。 */
+.klp-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+
+/* 字段容器作为红字 / 提示的绝对定位基准。 */
+.klp-field {
+  position: relative;
+}
+
+/* 视觉隐藏但保留可访问性（sr-only）：定稿不展示字段名，标签只服务屏幕阅读器与 label[for]。 */
+.klp-label-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 字段级必填红字 / 灰字提示：输入框下方 4px，单行省略，落在 36/40 间距内。 */
+.klp-field-error,
+.klp-field-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--klp-error);
+}
+
+.klp-field-hint {
+  color: var(--klp-text-secondary);
+}
+
+.klp-field-hint--muted {
+  color: var(--klp-text-placeholder);
+}
+
+/* 宿主业务错误（密码错 / 锁定 / 验证码错等）：密码框下方一行红字，最多两行（12/16，
+   3 + 32 = 35 < 36 间距），放在既有间距里不单独占块；完整文案挂 title。 */
+.klp-biz-error {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 3px);
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--klp-error);
+}
+
+.klp-biz-error-icon {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-top: 1px;
+}
+
+.klp-biz-error-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* ── 输入框（naive NInput 视觉覆盖，保留其原生 a11y / 密码可见切换 / 状态机）──────────────
+ * 踩坑（2026-07-09）：NInput 根 DOM 就是 <div class="n-input ... klp-input">，
+ * 须用同元素复合选择器 .klp-input.n-input；内部子元素才用后代选择器。
+ */
+.klp-root .klp-input.n-input {
+  height: 40px;
+  background-color: var(--klp-input-bg);
+  border-radius: 8px;
+  box-shadow: var(--klp-input-inset);
+}
+
+.klp-root .klp-input .n-input__border,
+.klp-root .klp-input .n-input__state-border {
+  border-radius: 8px;
+  border-color: var(--klp-input-border);
+}
+
+.klp-root .klp-input.n-input.n-input--focus .n-input__state-border {
+  border-color: var(--klp-brand-primary);
+  box-shadow: var(--klp-focus-ring);
+}
+
+.klp-root .klp-input.n-input:not(.n-input--disabled).n-input--error-status .n-input__state-border,
+.klp-root .klp-input.n-input:not(.n-input--disabled).n-input--error-status .n-input__border {
+  border-color: var(--klp-error);
+}
+
+.klp-root .klp-input .n-input__input-el,
+.klp-root .klp-input .n-input__placeholder {
+  color: var(--klp-text-primary);
+  font-size: 14px;
+}
+
+.klp-root .klp-input .n-input__placeholder {
+  color: var(--klp-text-placeholder);
+}
+
+.klp-root .klp-input .n-input__prefix {
+  margin-right: 4px; /* 图标与文字 gap 4px */
+}
+
+/* 定稿输入框水平内边距 8px，naive large 档默认 14px 偏宽。 */
+.klp-root .klp-input .n-input-wrapper {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.klp-input-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--klp-icon-color);
+}
+
+.klp-input-icon svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+/* ── 图形验证码行：输入 + 图片 + 刷新（唯一允许改变高度的一行）──────────────────────────── */
+.klp-captcha-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.klp-captcha-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.klp-captcha-img {
+  flex: none;
+  width: var(--klp-captcha-w);
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 0;
+  background-color: var(--klp-input-bg);
+  border: 1px solid var(--klp-input-border);
+}
+
+.klp-captcha-img:disabled {
+  cursor: not-allowed;
+}
+
+.klp-captcha-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 行内文字按钮（刷新 / 获取验证码 / 返回登录等）。 */
+.klp-link-btn {
+  flex: none;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  color: var(--klp-accent);
+  cursor: pointer;
+}
+
+.klp-link-btn:disabled {
+  cursor: not-allowed;
+  color: var(--klp-text-placeholder);
+}
+
+.klp-icon-refresh {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  padding: 0;
+  border-radius: 50%;
+  color: var(--klp-text-placeholder);
+  cursor: pointer;
+}
+
+.klp-icon-refresh:hover:not(:disabled),
+.klp-icon-refresh:focus-visible {
+  color: var(--klp-brand-primary);
+}
+
+.klp-icon-refresh:disabled {
+  cursor: not-allowed;
+}
+
+/* ── 登录按钮（NButton 视觉覆盖）：根 DOM 同时带 n-button 与 klp-submit-btn，须用同元素复合选择器；
+ * naive 把配色以内联 --n-color 写在根节点上，故背景用 !important 稳定压过。 */
+.klp-root .klp-submit-btn.n-button {
+  margin-top: 40px; /* 输入区 → 按钮 40（视觉规范 btnTop） */
+  height: 36px;
+  border: none !important;
+  border-radius: 8px;
+  background: var(--klp-btn-bg) !important;
+  background-size: 200% 100% !important;
+  animation: var(--klp-btn-anim);
+  filter: var(--klp-btn-shadow);
+  color: #ffffff !important;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.klp-root .klp-submit-btn .n-button__border,
+.klp-root .klp-submit-btn .n-button__state-border {
+  /* naive 默认主题色边框叠层会在渐变面上产生接缝，一并隐藏。 */
+  display: none;
+}
+
+.klp-root .klp-submit-btn.n-button:hover,
+.klp-root .klp-submit-btn.n-button:focus {
+  color: #ffffff !important;
+  opacity: 0.94;
+}
+
+.klp-root .klp-submit-btn.n-button.n-button--disabled {
+  opacity: 0.75;
+}
+
+/* ── 顶部 Tab（56 高）───────────────────────────────────────────────────────────────────── */
+.klp-tabs {
+  display: flex;
+}
+
+/* 分段 Tab（aurora）：3 + 30 + 3 = 36，下边距 20 → 56。 */
+.klp-tabs--seg {
+  padding: 3px;
+  gap: 2px;
+  margin-bottom: 20px;
+  border-radius: 6px;
+  background: var(--klp-tab-seg-bg);
+}
+
+.klp-tabs--seg .klp-tab {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  border: 0;
+  border-radius: 4px;
+  padding: 0 4px;
+  font: inherit;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  background: transparent;
+  color: var(--klp-text-secondary);
+}
+
+.klp-tabs--seg .klp-tab[aria-selected='true'] {
+  background: var(--klp-tab-seg-active-bg);
+  color: var(--klp-text-primary);
+  font-weight: 500;
+  box-shadow: var(--klp-tab-seg-active-shadow);
+}
+
+/* 下划线 Tab（split / ring / glass，居中）：32 高 + 下边距 24 → 56。 */
+.klp-tabs--line {
+  justify-content: center;
+  gap: 28px;
+  margin-bottom: 24px;
+}
+
+.klp-tabs--line .klp-tab {
+  height: 32px;
+  padding: 0 0 6px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+  white-space: nowrap;
+  cursor: pointer;
+  color: var(--klp-text-placeholder);
+  box-sizing: border-box;
+}
+
+.klp-tabs--line .klp-tab[aria-selected='true'] {
+  color: var(--klp-text-primary);
+  font-weight: 500;
+  border-bottom-color: var(--klp-brand-primary);
+}
+
+.klp-tab:focus-visible {
+  outline: 2px solid var(--klp-brand-primary);
+  outline-offset: 2px;
+}
+
+/* ── 底部一行（52 高 = 上边距 20 + 32 圆形图标）──────────────────────────────────────────── */
+.klp-footer-row {
+  padding-top: 20px;
+  height: 52px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--klp-text-placeholder);
+}
+
+.klp-footer-label {
+  margin-right: 2px;
+  white-space: nowrap;
+}
+
+/* 减弱动效：按钮渐变流动停在静止帧。 */
+@media (prefers-reduced-motion: reduce) {
+  .klp-root .klp-submit-btn.n-button {
+    animation: none;
+  }
+}
+
+/* ── 语言切换图标（四种外壳共用；位置由各外壳的 .klp-lang-slot 决定）─────────────────── */
+.klp-lang-toggle {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* §5 图标前景色：纯黑/暗色随文字主色。 */
+  color: var(--klp-icon-color);
+  opacity: 0.9;
+}
+
+.klp-lang-toggle svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* 可交互态（NDropdown 触发元素用 <button>）：清掉原生按钮外观，只保留 hover/focus 反馈。 */
+.klp-lang-toggle-active {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: opacity 0.15s ease;
+}
+
+.klp-lang-toggle-active:hover,
+.klp-lang-toggle-active:focus-visible {
+  opacity: 1;
+  color: var(--klp-brand-primary);
+}
+
+.klp-lang-toggle-active:focus-visible {
+  outline: 2px solid var(--klp-brand-primary);
+  outline-offset: 2px;
+}
+
+/* 标语：支持回车换行（契约：自定义标语回车换行）。 */
+.klp-slogan {
+  white-space: pre-line;
+  word-break: break-word;
+}
+
+/* 空态（暂无可用登录方式）。 */
+.klp-empty {
+  padding: 24px 0;
+}

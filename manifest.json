@@ -1,0 +1,63 @@
+{
+  "plugin_id": "com.kimpo.login-page",
+  "version": "1.0.1",
+  "sdk_version": "1.1.0-tp.20",
+  "category": "login",
+  "system": true,
+  "kimpo_version": ">=1.0.0",
+  "trust_level": "verified",
+  "name": {
+    "zh_CN": "标准登录页",
+    "en_US": "Standard Login Page"
+  },
+  "description": {
+    "zh_CN": "提供统一的标准登录界面，支持账号密码、单点登录跳转、二维码扫码、验证码与首次登录改密。",
+    "en_US": "Standard login screen with password sign-in, SSO redirects, QR-code scanning, captcha and first-login password change."
+  },
+  "author": {
+    "name": "KimpoSoft Team"
+  },
+  "config_schema": "config.schema.json",
+  "entry": {
+    "frontend": "frontend/plugin.umd.js"
+  },
+  "i18n": {
+    "namespace": "com.kimpo.login-page",
+    "locales": ["zh-CN", "en-US", "ja-JP", "zh-TW"],
+    "path": "frontend/locales",
+    "default_locale": "zh-CN"
+  },
+  "dependencies": {
+    "platform": ">=1.0.0",
+    "plugins": []
+  },
+  "permissions": {
+    "network": [],
+    "storage": false,
+    "exec": false
+  },
+  "lifecycle": {
+    "allow_multiple_config_instances": false,
+    "max_config_instances": 1
+  },
+  "capabilities": {
+    "frontend": {
+      "global_name": "KimpoPlugins.loginpage",
+      "bundle": "frontend/plugin.umd.js",
+      "surfaces": [
+        {
+          "id": "auth-login",
+          "type": "page-slot",
+          "slot": "auth.login",
+          "priority": 0,
+          "supported_auth_kinds": ["password", "redirect", "qr", "otp"],
+          "host_caps": ["message", "i18n", "log"]
+        }
+      ],
+      "routes": []
+    }
+  },
+  "schema_compatibility": {
+    "frontend.surface": { "min_version": 1 }
+  }
+}
